@@ -1,6 +1,6 @@
 require "activerecord/insert_many/version"
 require "active_record"
-require "active_record/connection_adapters/postgresql_adapter"
+require "active_record/connection_adapters/abstract_adapter"
 
 module InsertMany
   def insert_many(fixtures)
@@ -27,5 +27,5 @@ module InsertManyStatement
   end
 end
 
-ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.send :include, InsertManyStatement
+ActiveRecord::ConnectionAdapters::AbstractAdapter.send :include, InsertManyStatement
 ActiveRecord::Base.extend InsertMany
