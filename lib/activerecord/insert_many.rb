@@ -2,37 +2,40 @@ require "activerecord/insert_many/version"
 require "active_record"
 require "active_record/connection_adapters/abstract_adapter"
 
-module InsertMany
-  def insert_many(fixtures)
-    connection.insert_many(fixtures, table_name)
+module ActiveRecord
+  module InsertMany
+    def insert_many(fixtures)
+      connection.insert_many(fixtures, table_name)
+    end
   end
-end
 
-module InsertManyStatement
-  def insert_many(fixtures, table_name=self.table_name)
-    return if fixtures.empty?
+  module InsertManyStatement
+    def insert_many(fixtures, table_name=self.table_name)
+      return if fixtures.empty?
 
-    columns = schema_cache.columns_hash(table_name)
+      columns = schema_cache.columns_hash(table_name)
 
-    sample = fixtures.first
-    key_list = sample.map { |name, value| quote_column_name(name) }
+      sample = fixtures.first
+      key_list = sample.map { |name, value| quote_column_name(name) }
 
-    value_lists = fixtures.map do |fixture|
-      fixture.map do |name, value|
-        quote(value, columns[name])
+      value_lists = fixtures.map do |fixture|
+        fixture.map do |name, value|
+          quote(value, columns[name])
+        end
       end
+
+      primary_key_column = schema_cache.primary_keys(table_name)
+      returning = supports_returning? && primary_key_column.present? ? " RETURNING #{primary_key_column}" : ""
+
+      execute "INSERT INTO #{quote_table_name(table_name)} (#{key_list.join(', ')}) VALUES #{value_lists.map { |value| "(#{value.join(', ')})" }.join(",")}#{returning}", "Fixture Insert"
     end
 
-    primary_key_column = schema_cache.primary_keys(table_name)
-    returning = supports_returning? && primary_key_column.present? ? " RETURNING #{primary_key_column}" : ""
-
-    execute "INSERT INTO #{quote_table_name(table_name)} (#{key_list.join(', ')}) VALUES #{value_lists.map { |value| "(#{value.join(', ')})" }.join(",")}#{returning}", "Fixture Insert"
+    def supports_returning?
+      self.class.name == "ActiveRecord::ConnectionAdapters::PostgreSQLAdapter"
+    end
   end
 
-  def supports_returning?
-    true
-  end
 end
 
-ActiveRecord::ConnectionAdapters::AbstractAdapter.send :include, InsertManyStatement
-ActiveRecord::Base.extend InsertMany
+ActiveRecord::ConnectionAdapters::AbstractAdapter.send :include, ActiveRecord::InsertManyStatement
+ActiveRecord::Base.extend ActiveRecord::InsertMany
