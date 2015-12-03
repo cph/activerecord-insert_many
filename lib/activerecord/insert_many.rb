@@ -23,7 +23,14 @@ module InsertManyStatement
       end
     end
 
-    execute "INSERT INTO #{quote_table_name(table_name)} (#{key_list.join(', ')}) VALUES #{value_lists.map { |value| "(#{value.join(', ')})" }.join(",")}", "Fixture Insert"
+    primary_key_column = schema_cache.primary_keys(table_name)
+    returning = supports_returning? && primary_key_column.present? ? " RETURNING #{primary_key_column}" : ""
+
+    execute "INSERT INTO #{quote_table_name(table_name)} (#{key_list.join(', ')}) VALUES #{value_lists.map { |value| "(#{value.join(', ')})" }.join(",")}#{returning}", "Fixture Insert"
+  end
+
+  def supports_returning?
+    true
   end
 end
 
