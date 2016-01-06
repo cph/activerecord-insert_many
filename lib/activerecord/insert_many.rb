@@ -20,7 +20,7 @@ module ActiveRecord
 
       value_lists = fixtures.map do |fixture|
         fixture.map do |name, value|
-          quote(value, columns[name])
+          quote(value, columns[name.to_s])
         end
       end
 
