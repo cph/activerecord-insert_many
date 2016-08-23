@@ -19,8 +19,23 @@ module ActiveRecord
       key_list = sample.map { |name, value| quote_column_name(name) }
 
       value_lists = fixtures.map do |fixture|
-        fixture.map do |name, value|
-          quote(value, columns[name.to_s])
+
+        binds = fixture.map do |name, value|
+          name = name.to_s
+          if column = columns[name]
+            type = lookup_cast_type_from_column(column)
+            Relation::QueryAttribute.new(name, value, type)
+          else
+            raise Fixture::FixtureError, %(table "#{table_name}" has no column named #{name.inspect}.)
+          end
+        end
+
+        prepare_binds_for_database(binds).map do |value|
+          begin
+            quote(value)
+          rescue TypeError
+            quote(YAML.dump(value))
+          end
         end
       end
 
