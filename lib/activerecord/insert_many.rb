@@ -1,6 +1,7 @@
 require "activerecord/insert_many/version"
 require "active_record"
 require "active_record/connection_adapters/abstract_adapter"
+require "active_record/fixtures"
 
 module ActiveRecord
   module InsertMany
