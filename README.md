@@ -1,8 +1,11 @@
 # Activerecord::InsertMany
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/activerecord/insert_many`. To experiment with that code, run `bin/console` for an interactive prompt.
 
-TODO: Delete this and the text above, and describe your gem
+[![Gem Version](https://badge.fury.io/rb/activerecord-insert_many.svg)](https://rubygems.org/gems/activerecord-insert_many)
+[![Code Climate](https://codeclimate.com/github/cph/activerecord-insert_many.svg)](https://codeclimate.com/github/cph/activerecord-insert_many)
+[![Build Status](https://travis-ci.org/cph/activerecord-insert_many.svg)](https://travis-ci.org/cph/activerecord-insert_many)
+
+ActiveRecord::InsertMany adds the class method `insert_many` to ActiveRecord objects allowing you to bulk-insert records.
 
 ## Installation
 
@@ -32,5 +35,4 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/activerecord-insert_many.
-
+Bug reports and pull requests are welcome on GitHub at https://github.com/cph/activerecord-insert_many.
