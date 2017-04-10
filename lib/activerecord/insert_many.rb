@@ -39,7 +39,7 @@ module ActiveRecord
           end
         end
 
-        prepare_binds_for_database(binds).map do |value|
+        binds.map(&:value_for_database).map do |value|
           begin
             quote(value)
           rescue TypeError
