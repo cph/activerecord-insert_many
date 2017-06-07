@@ -42,6 +42,15 @@ class InsertManyTest < Minitest::Test
         assert_equal ["Perelandra"], Book.pluck(:title)
       end
     end
+
+    context "when on_conflict.column is an array" do
+      should "list all the columns in the ON CONFLICT clause" do
+        assert_match /ON CONFLICT\("title","author"\)/, Book.connection.insert_many_sql(
+          [{id: 1, title: "The Great Divorce", author: "C.S. Lewis"}],
+          "books",
+          on_conflict: { column: %i{title author}, do: :update })
+      end
+    end
   end
 
 end
