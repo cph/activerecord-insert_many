@@ -66,14 +66,17 @@ module ActiveRecord
         conflict_columns = Array.wrap(conflict.fetch(:column, schema_cache.primary_keys(table_name)))
         raise ArgumentError, "To use the :on_conflict option, you must specify :column" unless conflict_columns.any?
 
+        conflict_do = conflict.fetch(:do)
+        raise ArgumentError, "#{conflict_do.inspect} is an unknown value for conflict[:do]; must be :nothing or :update" unless [:nothing, :update].member?(conflict_do)
+
         conflict_columns = conflict_columns.map(&method(:quote_column_name))
-        case conflict_do = conflict.fetch(:do)
-        when :nothing
-          sql << " ON CONFLICT(#{conflict_columns.join(",")}) DO NOTHING"
-        when :update
-          sql << " ON CONFLICT(#{conflict_columns.join(",")}) DO UPDATE SET #{(key_list - conflict_columns).map { |key| "#{key} = excluded.#{key}" }.join(", ")}"
+        sql << " ON CONFLICT(#{conflict_columns.join(",")})"
+        sql << " WHERE #{conflict[:where]}" if conflict[:where]
+
+        if conflict_do == :nothing
+          sql << " DO NOTHING"
         else
-          raise ArgumentError, "#{conflict_do.inspect} is an unknown value for conflict[:do]; must be :nothing or :update"
+          sql << " DO UPDATE SET #{(key_list - conflict_columns).map { |key| "#{key} = excluded.#{key}" }.join(", ")}"
         end
       end
 

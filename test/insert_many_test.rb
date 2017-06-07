@@ -51,6 +51,27 @@ class InsertManyTest < Minitest::Test
           on_conflict: { column: %i{title author}, do: :update })
       end
     end
+
+    context "when on_conflict.where is provided" do
+      should "perform the correct action based on a partial index" do
+        Book.insert_many [{id: 1, title: "Out of the Silent Planet", author: "C.S. Lewis", isbn: "1974522598", published_on: Date.new(1938, 4, 1) }]
+        Book.insert_many [{id: 2, title: "Perelandra", author: "C.S. Lewis", isbn: "1974522598", published_on: Date.new(1943, 1, 1) }], on_conflict: { column: :isbn, where: "published_on IS NOT NULL", do: :update }
+        assert_equal ["Perelandra"], Book.where(isbn: "1974522598").pluck(:title)
+      end
+
+      should "not perform an UPSERT if a partial index doesn't apply" do
+        Book.insert_many [{id: 1, title: "Out of the Silent Planet", author: "C.S. Lewis", isbn: "1974522598", published_on: Date.new(1938, 4, 1) }]
+        Book.insert_many [{id: 2, title: "Perelandra", author: "C.S. Lewis", isbn: "1974522598" }], on_conflict: { column: :isbn, where: "published_on IS NOT NULL", do: :update }
+        assert_equal ["Out of the Silent Planet", "Perelandra"], Book.where(isbn: "1974522598").pluck(:title).sort
+      end
+
+      should "include a WHERE clause in the ON CONFLICT clause" do
+        assert_match /ON CONFLICT\("id"\) WHERE author IS NOT NULL/, Book.connection.insert_many_sql(
+          [{id: 1, title: "Perelandra", author: "C.S. Lewis"}],
+          "books",
+          on_conflict: { column: :id, do: :nothing, where: "author IS NOT NULL" })
+      end
+    end
   end
 
 end
