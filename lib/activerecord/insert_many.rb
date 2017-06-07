@@ -21,10 +21,20 @@ module ActiveRecord
       end
       return returning && [] if fixtures.empty?
 
+      sql = insert_many_sql(fixtures, table_name, options.merge(returning: returning))
+
+      result = execute sql, "Fixture Insert"
+
+      returning ? result.to_a : result
+    end
+
+    def insert_many_sql(fixtures, table_name, options={})
+      returning = options[:returning]
+
       columns = schema_cache.columns_hash(table_name)
 
       sample = fixtures.first
-      key_list = sample.map { |name, value| quote_column_name(name) }
+      key_list = sample.map { |name, _value| quote_column_name(name) }
       returning = returning.map { |name| quote_column_name(name) } if returning
 
       value_lists = fixtures.map do |fixture|
@@ -48,20 +58,20 @@ module ActiveRecord
         end
       end
 
-      sql = "INSERT INTO #{quote_table_name(table_name)} (#{key_list.join(', ')}) VALUES #{value_lists.map { |value| "(#{value.join(', ')})" }.join(",")}"
+      sql = "INSERT INTO #{quote_table_name(table_name)} (#{key_list.join(",")}) VALUES #{value_lists.map { |value| "(#{value.join(",")})" }.join(", ")}"
 
       if conflict = options[:on_conflict]
         raise ArgumentError, "To use the :on_conflict option, you must be using Postgres >= 9.5" unless supports_on_conflict?
 
-        conflict_column = conflict.fetch(:column, schema_cache.primary_keys(table_name))
-        raise ArgumentError, "To use the :on_conflict option, you must specify :column" unless conflict_column
+        conflict_columns = Array.wrap(conflict.fetch(:column, schema_cache.primary_keys(table_name)))
+        raise ArgumentError, "To use the :on_conflict option, you must specify :column" unless conflict_columns.any?
 
-        conflict_column = quote_column_name(conflict_column)
+        conflict_columns = conflict_columns.map(&method(:quote_column_name))
         case conflict_do = conflict.fetch(:do)
         when :nothing
-          sql << " ON CONFLICT(#{conflict_column}) DO NOTHING"
+          sql << " ON CONFLICT(#{conflict_columns.join(",")}) DO NOTHING"
         when :update
-          sql << " ON CONFLICT(#{conflict_column}) DO UPDATE SET #{(key_list - [conflict_column]).map { |key| "#{key} = excluded.#{key}" }.join(", ")}"
+          sql << " ON CONFLICT(#{conflict_columns.join(",")}) DO UPDATE SET #{(key_list - conflict_columns).map { |key| "#{key} = excluded.#{key}" }.join(", ")}"
         else
           raise ArgumentError, "#{conflict_do.inspect} is an unknown value for conflict[:do]; must be :nothing or :update"
         end
@@ -69,9 +79,7 @@ module ActiveRecord
 
       sql << " RETURNING #{returning.join(",")}" if returning
 
-      result = execute sql, "Fixture Insert"
-
-      returning ? result.to_a : result
+      sql
     end
 
     def supports_on_conflict?
