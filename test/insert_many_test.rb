@@ -41,6 +41,13 @@ class InsertManyTest < Minitest::Test
         Book.insert_many [{id: 1, title: "Perelandra", author: "C.S. Lewis"}], on_conflict: { do: :update }
         assert_equal ["Perelandra"], Book.pluck(:title)
       end
+
+      should "not update the primary key" do
+        Book.insert_many [{id: 2, title: "Out of the Silent Planet", author: "C.S. Lewis", isbn: "1974522598", published_on: Date.new(1938, 4, 1) }]
+        results = Book.insert_many [{id: 3, title: "Perelandra", author: "C.S. Lewis", isbn: "1974522598", published_on: Date.new(1938, 4, 1) }], on_conflict: { column: :isbn, where: "published_on IS NOT NULL", do: :update }
+        assert_equal [{"id" => 2}], results, "Should not have updated the ID"
+        assert_equal ["Perelandra"], Book.pluck(:title), "Should have updated the title"
+      end
     end
 
     context "when on_conflict.column is an array" do

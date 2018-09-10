@@ -76,7 +76,9 @@ module ActiveRecord
         if conflict_do == :nothing
           sql << " DO NOTHING"
         else
-          sql << " DO UPDATE SET #{(key_list - conflict_columns).map { |key| "#{key} = excluded.#{key}" }.join(", ")}"
+          primary_keys = Array(schema_cache.primary_keys(table_name)).map(&method(:quote_column_name))
+          updatable_keys = key_list - conflict_columns - primary_keys
+          sql << " DO UPDATE SET #{updatable_keys.map { |key| "#{key} = excluded.#{key}" }.join(", ")}"
         end
       end
 
