@@ -25,7 +25,7 @@ module ActiveRecord
 
       result = execute sql, "Fixture Insert"
 
-      returning ? result.to_a : result
+      returning ? cast_result(result, table_name) : result
     end
 
     def insert_many_sql(fixtures, table_name, options={})
@@ -85,6 +85,18 @@ module ActiveRecord
       sql << " RETURNING #{returning.join(",")}" if returning
 
       sql
+    end
+
+    def cast_result(result, table_name)
+      types_by_column = result.fields.each_with_object({}) do |column_name, types|
+        types[column_name] = lookup_cast_type_from_column(columns(table_name).find { |column| column.name == column_name })
+      end
+
+      result.to_a.map { |row|
+        Hash[row.map { |column_name, value|
+          [ column_name, types_by_column[column_name].deserialize(value) ]
+        }]
+      }
     end
 
     def supports_on_conflict?
