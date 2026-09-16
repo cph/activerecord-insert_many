@@ -25,7 +25,7 @@ module ActiveRecord
 
       result = execute sql, "Fixture Insert"
 
-      returning ? cast_result(result, table_name) : result
+      returning ? insert_many_cast_result(result, table_name) : result
     end
 
     def insert_many_sql(fixtures, table_name, options={})
@@ -87,7 +87,7 @@ module ActiveRecord
       sql
     end
 
-    def cast_result(result, table_name)
+    def insert_many_cast_result(result, table_name)
       types_by_column = result.fields.each_with_object({}) do |column_name, types|
         types[column_name] = lookup_cast_type(columns(table_name).find { |column| column.name == column_name }.sql_type)
       end
