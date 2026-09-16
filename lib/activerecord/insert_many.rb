@@ -42,7 +42,7 @@ module ActiveRecord
         binds = fixture.map do |name, value|
           name = name.to_s
           if column = columns[name]
-            type = lookup_cast_type_from_column(column)
+            type = lookup_cast_type(column.sql_type)
             Relation::QueryAttribute.new(name, value, type)
           else
             raise Fixture::FixtureError, %(table "#{table_name}" has no column named #{name.inspect}.)
@@ -89,7 +89,7 @@ module ActiveRecord
 
     def cast_result(result, table_name)
       types_by_column = result.fields.each_with_object({}) do |column_name, types|
-        types[column_name] = lookup_cast_type_from_column(columns(table_name).find { |column| column.name == column_name })
+        types[column_name] = lookup_cast_type(columns(table_name).find { |column| column.name == column_name }.sql_type)
       end
 
       result.to_a.map { |row|
