@@ -33,6 +33,10 @@ module ActiveRecord
 
       columns = schema_cache.columns_hash(table_name)
 
+      # On PostgreSQL, lookup_cast_type queries the database, so look each
+      # column's type up once instead of once per row.
+      cast_types = Hash.new { |types, column| types[column] = lookup_cast_type(column.sql_type) }
+
       sample = fixtures.first
       key_list = sample.map { |name, _value| quote_column_name(name) }
       returning = returning.map { |name| quote_column_name(name) } if returning
@@ -42,8 +46,7 @@ module ActiveRecord
         binds = fixture.map do |name, value|
           name = name.to_s
           if column = columns[name]
-            type = lookup_cast_type(column.sql_type)
-            Relation::QueryAttribute.new(name, value, type)
+            Relation::QueryAttribute.new(name, value, cast_types[column])
           else
             raise Fixture::FixtureError, %(table "#{table_name}" has no column named #{name.inspect}.)
           end

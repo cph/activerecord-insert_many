@@ -27,6 +27,18 @@ class InsertManyTest < Minitest::Test
       assert_equal [{"id" => 1, "title" => "The Great Divorce"}], results
     end
 
+    should "look up each column's type once, not once per row" do
+      rows = Array.new(3) { |i| { title: "Volume #{i + 1}", author: "C.S. Lewis" } }
+      type_lookups = 0
+      count_type_lookups = ->(*, payload) { type_lookups += 1 if payload[:sql].include?("::regtype::oid") }
+
+      ActiveSupport::Notifications.subscribed(count_type_lookups, "sql.active_record") do
+        Book.connection.insert_many_sql(rows, "books")
+      end
+
+      assert_equal 2, type_lookups, "Expected one type lookup per column (title, author), not one per row"
+    end
+
     context "when on_conflict = :nothing" do
       should "skip duplicate records" do
         Book.insert_many [{id: 1, title: "The Great Divorce", author: "C.S. Lewis"}]
